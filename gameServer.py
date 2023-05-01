@@ -1,5 +1,6 @@
 import socket
 import threading
+import random
 
 MSG_SIZE = 1024
 PORT = 6000
@@ -8,21 +9,31 @@ class Server():
 
     def __init__(self):
 
-        # store mapping from username to messages
+        # accounts[username][connection] = ip address
+        # accounts[username][pos] = position
+        # store mapping from username to game data
         self.accounts = {}
 
-        # store mapping from username to address and port
         self.connections = {}
-
-        self.pos = {
-            "x": 640,
-            "y": 360
-        }
 
         # initialize server socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def Move(self, clientSocket, movementString):
+
+    def CreateUser(self, clientSocket, clientAddress, username):
+        if username in self.accounts:
+            print("Error creating user -- username already taken.")
+            clientSocket.close()
+        else:
+            # store relevant user data in the accounts dictionary, random start position
+            self.accounts[username] = {
+                "x": random.randrange(50, 1230),
+                "y": random.randrange(30, 690)
+            }
+            self.connections[username] = clientAddress
+
+
+    def Move(self, clientSocket, username, movementString):
         moveResponse = ''
 
         # dt = float(dtString)
@@ -40,23 +51,28 @@ class Server():
         # if movementArray[3]:
         #     self.pos["x"] += 300 *dt
         if movementArray[0]:
-            self.pos["y"] -= 1
+            self.accounts[username]["y"] -= 1
         if movementArray[1]:
-            self.pos["y"] += 1
+            self.accounts[username]["y"] += 1
         if movementArray[2]:
-            self.pos["x"] -= 1
+            self.accounts[username]["x"] -= 1
         if movementArray[3]:
-            self.pos["x"] += 1
+            self.accounts[username]["x"] += 1
 
 
-        moveResponse = "1" + "|" + str(self.pos["y"]) + "|" + str(self.pos["x"])
+        moveResponse = "1" + "|" + str(self.accounts[username]["y"]) + "|" + str(self.accounts[username]["x"])
 
         print(moveResponse)
+        print(self.accounts)
+        print(self.connections)
         try:
             clientSocket.send(moveResponse.encode())
         except:
             print("Error sending move response")
         return
+    
+    def pickleGameState():
+        return ""
 
 
     # def DeleteAccount(self, clientSocket, username):
@@ -212,6 +228,9 @@ class Server():
 
     def ClientThread(self, clientSocket, clientAddress):
 
+        # Store mapping from user to address and port
+        # Store mapping from user to attributes (pos for now) 
+
         # receive MSG_SIZE until 0 bytes are received and exit control loop
         while True:
             clientRequest = clientSocket.recv(MSG_SIZE).decode()
@@ -225,7 +244,10 @@ class Server():
                 opCode = clientRequest[0]
 
                 if opCode == "0":
-                    self.Move(clientSocket, clientRequest[1])
+                    self.CreateUser(clientSocket, clientAddress, clientRequest[1])
+
+                if opCode == "1":
+                    self.Move(clientSocket, clientRequest[1], clientRequest[2])
                 #     self.LogIn(clientSocket, clientAddress, clientRequest[1])
 
                 # elif opCode == "1":

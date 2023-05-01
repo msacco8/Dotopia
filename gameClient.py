@@ -20,20 +20,34 @@ class GameClient:
             "y": 0
         }
 
+        self.players = []
+
     def Connect(self, serverAddress):
 
         # connect to server from system arguments
         self.sock.connect((serverAddress, 6000))
 
-    def Move(self, movementArray):
+    def CreateUser(self):
         opCode = "0"
+
+        createUserPickle = opCode + "|" + self.username
+
+        # send message request to server and get response
+        try:
+            self.sock.send(createUserPickle)
+        except:
+            print("Error creating user")
+
+
+    def Move(self, movementArray):
+        opCode = "1"
 
         movementPickle = "".join(["1" if b else "0" for b in movementArray])
         print(movementPickle)
         # dtPickle = "{:.2f}".format(dt)
 
         # moveRequest = (opCode + "|"  + movementPickle + "|" + dtPickle).encode()
-        moveRequest = (opCode + "|"  + movementPickle).encode()
+        moveRequest = (opCode + "|"  + self.username + "|" + movementPickle).encode()
 
         # send message request to server and get response
         try:
@@ -79,12 +93,19 @@ class GameClient:
         self.pos["x"] = player_pos.x
         self.pos["y"] = player_pos.y
 
+        # Send username to server
+        self.CreateUser(username)
+
         while running:
             # poll for events
             # pygame.QUIT event means the user clicked X to close your window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+
+            # GET OTHER PLAYERS POSITIONS
+            # for player in self.players:
+            #     pygame.draw.circle(screen, "white", )
 
             # fill the screen with a color to wipe away anything from last frame
             screen.fill("black")
@@ -99,18 +120,6 @@ class GameClient:
                 self.Move(movementArray)
                 player_pos.x = float(self.pos["x"])
                 player_pos.y = float(self.pos["y"])
-            # if keys[pygame.K_w]:
-            #     # player_pos.y -= 300 * dt
-            #     self.pos = self.Move("u", dt)
-            # if keys[pygame.K_s]:
-            #     # player_pos.y += 300 * dt
-            #     self.pos = self.Move("d", dt)
-            # if keys[pygame.K_a]:
-            #     # player_pos.x -= 300 * dt
-            #     self.pos = self.Move("l", dt)
-            # if keys[pygame.K_d]:
-            #     # player_pos.x += 300 * dt
-            #     self.pos = self.Move("r", dt)
 
             
             print(player_pos.x)
