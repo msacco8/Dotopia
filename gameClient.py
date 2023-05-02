@@ -19,12 +19,9 @@ class GameClient:
 
         self.dt = 0
 
-        self.pos = {
-            "x": 0,
-            "y": 0
-        }
-
         self.accounts = {}
+
+        self.powerUps = []
         
 
     def Connect(self, serverAddress):
@@ -59,16 +56,28 @@ class GameClient:
                     raise RuntimeError("socket connection broken")
                 message += chunk
 
-            gameStateResponse = message.decode().strip().split("|")
+            gameStateResponse = message.decode().strip()
+            print(gameStateResponse)
+            split = gameStateResponse.split("~")
+            userInfo, powerUps = split[0].split("|"), split[1].split("|")
             self.accounts = {}
+            self.powerUps = []
 
-            for i in range(0, len(gameStateResponse) - 1, 2):
-                user = gameStateResponse[i]
-                pos = gameStateResponse[i + 1].split(":")
+            for i in range(0, len(userInfo) - 1, 2):
+                user = userInfo[i]
+                vals = userInfo[i + 1].split(":")
                 self.accounts[user] = {
-                    "x": pos[0],
-                    "y": pos[1]
+                    "x": vals[0],
+                    "y": vals[1],
+                    "score": vals[2]
                 }
+            
+            for i in range(0, len(powerUps) - 2, 3):
+                self.powerUps.append({
+                    "type": powerUps[i],
+                    "x": powerUps[i+1],
+                    "y": powerUps[i+2]
+                })
                 
         except:
             print("Error receiving game state")
@@ -121,6 +130,7 @@ class GameClient:
         screen = pygame.display.set_mode((1280, 720))
         clock = pygame.time.Clock()
         GAME_FONT = pygame.freetype.Font('freesansbold.ttf', 12)
+        SCORE_FONT = pygame.freetype.Font('freesansbold.ttf', 48)
         dt = 0
 
         # player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
@@ -149,8 +159,15 @@ class GameClient:
             for user in self.accounts.keys():
                 userPos = pygame.Vector2(float(self.accounts[user]["x"]), float(self.accounts[user]["y"]))
                 # print(userPos)
-                pygame.draw.circle(screen, "white", userPos, 5)
-                GAME_FONT.render_to(screen, (userPos.x - 10, userPos.y + 20), user, (255, 255, 255))
+                pygame.draw.circle(screen, "white", userPos, 12)
+                GAME_FONT.render_to(screen, (userPos.x - 12, userPos.y + 25), user, (255, 255, 255))
+                if user == self.username:
+                    SCORE_FONT.render_to(screen, (10, 10), "$" + self.accounts[user]["score"], (0, 255, 0))
+
+            for powerUp in self.powerUps:
+                powerUpPos = pygame.Vector2(float(powerUp["x"]), float(powerUp["y"]))
+                color = "green" if powerUp["type"] == "money" else "blue"
+                pygame.draw.circle(screen, color, powerUpPos, 6)                     
 
             keys = pygame.key.get_pressed()
             movementArray = [keys[pygame.K_w], keys[pygame.K_s], keys[pygame.K_a], keys[pygame.K_d]]

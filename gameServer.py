@@ -20,6 +20,8 @@ class Server():
 
         self.connections = {}
 
+        self.powerUps = []
+
         # initialize server socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -32,7 +34,8 @@ class Server():
             # store relevant user data in the accounts dictionary, random start position
             self.accounts[username] = {
                 "x": random.randrange(50, 1230),
-                "y": random.randrange(30, 690)
+                "y": random.randrange(30, 690),
+                "score": 0
             }
             self.connections[username] = (clientAddress, clientSocket)
 
@@ -55,15 +58,33 @@ class Server():
         while True:
             gameStatePickle = ''
             for user in self.accounts.keys():
-                gameStatePickle += user + "|" + str(self.accounts[user]["x"]) + ":" + str(self.accounts[user]["y"]) + "|"
+                gameStatePickle += (user + "|" + str(self.accounts[user]["x"]) + ":" + 
+                                    str(self.accounts[user]["y"]) + ":" + str(self.accounts[user]["score"]) + "|")
 
             time.sleep(0.05)
+
+            gameStatePickle = gameStatePickle[:-1] + "~"
+
+            for powerUp in self.powerUps:
+                gameStatePickle += (powerUp["type"] + "|" + str(powerUp["x"]) + "|" + str(powerUp["y"]) + "|")
 
             gameStatePickle = gameStatePickle[:-1]
             prefix = struct.pack(PREFIX_FORMAT, len(gameStatePickle))
 
             for _, socket in self.connections.values():
                 socket.sendall(prefix + gameStatePickle.encode())
+
+
+    def RenderPowerUps(self):
+        types = ["money", "speed"]
+
+        while True:
+            time.sleep(5)
+            self.powerUps.append({
+                "type": random.choice(types),
+                "x": random.randrange(50, 1230),
+                "y": random.randrange(30, 690)
+            })
 
 
     def Listen(self):
@@ -78,6 +99,9 @@ class Server():
 
         gameStateThread = threading.Thread(target=self.BroadcastGameState)
         gameStateThread.start()
+
+        powerUpThread = threading.Thread(target=self.RenderPowerUps)
+        powerUpThread.start()
 
         while True:
             # accept connections from outside
@@ -122,6 +146,7 @@ class Server():
                 del self.connections[user]
                 break
         clientSocket.close()   
+
 
 if __name__ == '__main__':
     server = Server()
