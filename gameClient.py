@@ -2,8 +2,12 @@ import socket
 import pygame
 import pygame.freetype
 import sys
+import time
+import struct
 
 MSG_SIZE = 1024
+
+PREFIX_FORMAT = "!I"
 
 class GameClient:
 
@@ -20,14 +24,15 @@ class GameClient:
             "y": 0
         }
 
-        self.accounts = []
+        self.accounts = {}
 
         self.players = []
+        
 
     def Connect(self, serverAddress):
-
         # connect to server from system arguments
         self.sock.connect((serverAddress, 6000))
+
 
     def CreateUser(self):
         opCode = "0"
@@ -36,7 +41,6 @@ class GameClient:
 
         # send message request to server and get response
         try:
-            print("hello")
             self.sock.send(createUserPickle)
         except:
             print("Error creating user")
@@ -44,16 +48,31 @@ class GameClient:
         return
     
     def UpdateGameState(self):
-
         try:
-            gameStateResponse = self.sock.recv(MSG_SIZE).decode().strip().split("|")
-            for i in range(0, len(gameStateResponse) - 1):
+            prefix = b""
+            while len(prefix) == 0:
+                prefix = self.sock.recv(4)
+            messageLength = struct.unpack(PREFIX_FORMAT, prefix)[0]
+
+            message = b""
+            while len(message) < messageLength:
+                chunk = self.sock.recv(messageLength - len(message))
+                if not chunk:
+                    raise RuntimeError("socket connection broken")
+                message += chunk
+
+            gameStateResponse = message.decode().strip().split("|")
+            # time.sleep(2)
+            # if len(gameStateResponse) > 1:
+                # print(gameStateResponse)
+            for i in range(0, len(gameStateResponse) - 1, 2):
                 user = gameStateResponse[i]
                 pos = gameStateResponse[i + 1].split(":")
                 self.accounts[user] = {
-                    "x" : pos[0],
-                    "y" : pos[1]
+                    "x": pos[0],
+                    "y": pos[1]
                 }
+                
         except:
             print("Error receiving game state")
 
@@ -74,26 +93,26 @@ class GameClient:
         except:
             print("Error sending move request")
 
-        try:
-            moveResponse = self.sock.recv(MSG_SIZE).decode().strip().split("|")
-        except:
-            print("Error receiving move response")
+        # try:
+        #     moveResponse = self.sock.recv(MSG_SIZE).decode().strip().split("|")
+        # except:
+        #     print("Error receiving move response")
 
-        print(moveResponse)
+        # print(moveResponse)
         # reflect success status to client
-        if moveResponse[0] == "1":
-            # print(int(moveResponse[1]))
-            try:
-                self.pos["y"] = moveResponse[1]
-                self.pos["x"] = moveResponse[2]
-                # print(self.pos["x"])
-            except:
-                print(self.pos['x'])
-                print("exception")
+        # if moveResponse[0] == "1":
+        #     # print(int(moveResponse[1]))
+        #     try:
+        #         self.pos["y"] = moveResponse[1]
+        #         self.pos["x"] = moveResponse[2]
+        #         # print(self.pos["x"])
+        #     except:
+        #         print(self.pos['x'])
+        #         print("exception")
 
             # print("move success")
-        else:
-            print("move fail")
+        # else:
+        #     print("move fail")
 
         # print("got here")
         return
@@ -130,8 +149,8 @@ class GameClient:
             # fill the screen with a color to wipe away anything from last frame
             screen.fill("black")
 
-            for user in self.accounts:
-                userPos = pygame.Vector2(float(user["x"]), float(user["y"]))
+            for user in self.accounts.keys():
+                userPos = pygame.Vector2(float(self.accounts[user]["x"]), float(self.accounts[user]["y"]))
                 pygame.draw.circle(screen, "white", userPos, 5)
                 GAME_FONT.render_to(screen, (userPos.x - 10, userPos.y + 20), user, (255, 255, 255))
 
@@ -145,7 +164,7 @@ class GameClient:
                 # player_pos.y = float(self.pos["y"])
 
             
-            print(player_pos.x)
+            # print(player_pos.x)
 
             # text_surface, rect = GAME_FONT.render("Hello World!", (0, 0, 0))
             # screen.blit(text_surface, (40, 250))

@@ -1,9 +1,12 @@
 import socket
 import threading
 import random
+import time
+import struct
 
 MSG_SIZE = 1024
 PORT = 6000
+PREFIX_FORMAT = "!I"
 
 class Server():
 
@@ -63,8 +66,6 @@ class Server():
         moveResponse = "1" + "|" + str(self.accounts[username]["y"]) + "|" + str(self.accounts[username]["x"])
 
         print(moveResponse)
-        print(self.accounts)
-        print(self.connections)
         try:
             clientSocket.send(moveResponse.encode())
         except:
@@ -74,14 +75,20 @@ class Server():
     
     def BroadcastGameState(self):
         # "user1|x:y|user2|x:y"
-        gameStatePickle = ''
-        for user in self.accounts.keys():
-            gameStatePickle += user + "|" + str(self.accounts[user]["x"]) + ":" + str(self.accounts[user]["y"]) + "|"
+        while True:
+            gameStatePickle = ''
+            for user in self.accounts.keys():
+                gameStatePickle += user + "|" + str(self.accounts[user]["x"]) + ":" + str(self.accounts[user]["y"]) + "|"
 
-        gameStatePickle = gameStatePickle[:-1]
-        print(gameStatePickle)
+            time.sleep(2)
 
-        self.sock.send(gameStatePickle.encode())
+            gameStatePickle = gameStatePickle[:-1]
+            print(gameStatePickle)
+
+            prefix = struct.pack(PREFIX_FORMAT, len(gameStatePickle))
+
+            for _, socket in self.connections.values():
+                socket.sendall(prefix + gameStatePickle.encode())
 
 
     def Listen(self):
@@ -94,6 +101,9 @@ class Server():
         self.sock.listen(5)
         print("Listening on " + ADDR + ":" + str(PORT))
 
+        gameStateThread = threading.Thread(target=self.BroadcastGameState)
+        gameStateThread.start()
+
         while True:
             # accept connections from outside
             (clientSocket, clientAddress) = self.sock.accept()
@@ -101,8 +111,6 @@ class Server():
 
             clientThread = threading.Thread(target=self.ClientThread, args=(clientSocket, clientAddress))
             clientThread.start()
-
-            self.BroadcastGameState()
 
         self.sock.close()
 
