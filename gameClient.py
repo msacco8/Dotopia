@@ -20,6 +20,8 @@ class GameClient:
             "y": 0
         }
 
+        self.accounts = []
+
         self.players = []
 
     def Connect(self, serverAddress):
@@ -30,13 +32,30 @@ class GameClient:
     def CreateUser(self):
         opCode = "0"
 
-        createUserPickle = opCode + "|" + self.username
+        createUserPickle = (opCode + "|" + self.username).encode()
 
         # send message request to server and get response
         try:
+            print("hello")
             self.sock.send(createUserPickle)
         except:
             print("Error creating user")
+
+        return
+    
+    def UpdateGameState(self):
+
+        try:
+            gameStateResponse = self.sock.recv(MSG_SIZE).decode().strip().split("|")
+            for i in range(0, len(gameStateResponse) - 1):
+                user = gameStateResponse[i]
+                pos = gameStateResponse[i + 1].split(":")
+                self.accounts[user] = {
+                    "x" : pos[0],
+                    "y" : pos[1]
+                }
+        except:
+            print("Error receiving game state")
 
 
     def Move(self, movementArray):
@@ -89,12 +108,12 @@ class GameClient:
         running = True
         dt = 0
 
-        player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
-        self.pos["x"] = player_pos.x
-        self.pos["y"] = player_pos.y
+        # player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
+        # self.pos["x"] = player_pos.x
+        # self.pos["y"] = player_pos.y
 
         # Send username to server
-        self.CreateUser(username)
+        self.CreateUser()
 
         while running:
             # poll for events
@@ -106,11 +125,15 @@ class GameClient:
             # GET OTHER PLAYERS POSITIONS
             # for player in self.players:
             #     pygame.draw.circle(screen, "white", )
+            self.UpdateGameState()
 
             # fill the screen with a color to wipe away anything from last frame
             screen.fill("black")
 
-            pygame.draw.circle(screen, "white", player_pos, 5)
+            for user in self.accounts:
+                userPos = pygame.Vector2(float(user["x"]), float(user["y"]))
+                pygame.draw.circle(screen, "white", userPos, 5)
+                GAME_FONT.render_to(screen, (userPos.x - 10, userPos.y + 20), user, (255, 255, 255))
 
             keys = pygame.key.get_pressed()
             movementArray = [keys[pygame.K_w], keys[pygame.K_s], keys[pygame.K_a], keys[pygame.K_d]]
@@ -118,15 +141,15 @@ class GameClient:
                 # self.Move(movementArray, self.dt)
                 # print("here")
                 self.Move(movementArray)
-                player_pos.x = float(self.pos["x"])
-                player_pos.y = float(self.pos["y"])
+                # player_pos.x = float(self.pos["x"])
+                # player_pos.y = float(self.pos["y"])
 
             
             print(player_pos.x)
 
             # text_surface, rect = GAME_FONT.render("Hello World!", (0, 0, 0))
             # screen.blit(text_surface, (40, 250))
-            GAME_FONT.render_to(screen, (player_pos.x - 10, player_pos.y + 20), username, (255, 255, 255))
+            # GAME_FONT.render_to(screen, (player_pos.x - 10, player_pos.y + 20), username, (255, 255, 255))
 
             # flip() the display to put your work on screen
             pygame.display.flip()
@@ -140,11 +163,6 @@ class GameClient:
         pygame.quit()
 
 if __name__ == '__main__':
-
-    # username = input("please enter a username: ")
-    # client = GameClient(username)
-    # client.Run()
-
     try:
         serverAddress = sys.argv[1]
         username = input("please enter a username: ")

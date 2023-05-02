@@ -30,7 +30,7 @@ class Server():
                 "x": random.randrange(50, 1230),
                 "y": random.randrange(30, 690)
             }
-            self.connections[username] = clientAddress
+            self.connections[username] = (clientAddress, clientSocket)
 
 
     def Move(self, clientSocket, username, movementString):
@@ -71,140 +71,18 @@ class Server():
             print("Error sending move response")
         return
     
-    def pickleGameState():
-        return ""
+    
+    def BroadcastGameState(self):
+        # "user1|x:y|user2|x:y"
+        gameStatePickle = ''
+        for user in self.accounts.keys():
+            gameStatePickle += user + "|" + str(self.accounts[user]["x"]) + ":" + str(self.accounts[user]["y"]) + "|"
 
+        gameStatePickle = gameStatePickle[:-1]
+        print(gameStatePickle)
 
-    # def DeleteAccount(self, clientSocket, username):
-    #     deleteAccountResponse = ''
+        self.sock.send(gameStatePickle.encode())
 
-    #     # deletes mapping from accounts to messages and returns success
-    #     if username in self.accounts:
-    #         del self.accounts[username]
-    #         deleteAccountResponse = "1|" + username
-    #         print("User " + username + " deleted.")
-    #     # returns failure response in case that user does not exist
-    #     else:
-    #         deleteAccountResponse = "0|" + username
-    #         print("Error deleting user " + username + ".")
-
-    #     try:
-    #         clientSocket.send(deleteAccountResponse.encode())
-    #     except:
-    #         print("Error sending delete account response")
-    #     return
-
-    # def ListAccounts(self, clientSocket, wildcard):
-    #     listAccountsResponse = '1|'
-
-    #     # adds each account that contains wildcard substring to response
-    #     for account in self.accounts.keys():
-    #         if wildcard in account:
-    #             listAccountsResponse += account + "|"
-
-    #     try:
-    #         clientSocket.send(listAccountsResponse[:-1].encode())
-    #     except:
-    #         print("Error sending list accounts response")
-    #     return
-
-    # def LogIn(self, clientSocket, clientAddress, username):
-    #     logInResponse = ''
-
-    #     # checks if username exists and is not currently logged in
-    #     if username in self.accounts and username not in self.connections:
-    #         self.connections[username] = clientAddress
-    #         logInResponse = "1|" + username
-    #     # returns failure response otherwise
-    #     else:
-    #         logInResponse = "0|" + username
-
-    #     try:
-    #         clientSocket.send(logInResponse.encode())
-    #     except:
-    #         print("Error sending log in response")
-    #     return
-
-    # def CreateAccount(self, clientSocket, clientAddress, username):
-    #     createAccountResponse = ''
-
-    #     # verifies that user doesn't already exist
-    #     if username not in self.accounts:
-    #         # adds to both mappings from username to messages and addr/port
-    #         self.connections[username] = clientAddress
-    #         self.accounts[username] = []
-    #         createAccountResponse = "1|" + username
-    #     # returns failure response if user already exists
-    #     else:
-    #         createAccountResponse = "0|" + username
-        
-    #     clientSocket.send(createAccountResponse.encode())
-    #     return
-
-    # def GetMessages(self, clientSocket, username):
-
-    #     # initialize response and number of MSG_SIZE messages to send
-    #     responseBuilder = ''
-    #     numMessages = 1
-
-    #     # verify that user exists and that they have unread messages
-    #     if username in self.accounts and self.accounts[username]:
-
-    #         # add each message with pipe delimiter to response
-    #         for sender, message in self.accounts[username]:
-    #             responseBuilder += "|" + sender + "|" + message
-
-    #         # calculate number of different MSG_SIZE chunks to send based on total message length
-    #         numMessages = ((len(responseBuilder) + 2) // MSG_SIZE) + 1
-
-    #         # append to front of message for client side to receive
-    #         getMessagesResponse = str(numMessages) + responseBuilder
-
-    #         # clear user's inbox
-    #         self.accounts[username] = []
-
-    #     else:
-    #         getMessagesResponse = "0|"
-        
-    #     # initialize sent data counter
-    #     totalSent = 0
-
-    #     # send MSG_SIZE while there is data to be sent
-    #     while totalSent < (numMessages * MSG_SIZE):
-    #         toSend = ''
-
-    #         # prepare remaining data if on last message
-    #         if totalSent + MSG_SIZE > len(getMessagesResponse[totalSent:]):
-    #             toSend = getMessagesResponse[totalSent:]
-
-    #         # prepare MSG_SIZE chunk if not
-    #         else:
-    #             toSend = getMessagesResponse[totalSent:(totalSent + MSG_SIZE)]
-
-    #         # send current chunk and increment sent counter
-    #         try:
-    #             sent = clientSocket.send(toSend.encode())
-    #         except:
-    #             print("Error sending chunk.")
-    #         totalSent += MSG_SIZE
-    #     return 
-
-    # def SendMessage(self, clientSocket, sender, recipient, message):
-    #     sendMessageResponse = ''
-
-    #     # verify that recipient exists
-    #     if recipient in self.accounts:
-    #         # add message to messages list and return success response
-    #         self.accounts[recipient].append([sender, message])
-    #         sendMessageResponse = "1|" + recipient
-    #     else:
-    #         # return failure response if recipient doesn't exist
-    #         sendMessageResponse = "0|" + recipient
-    #     try:
-    #         clientSocket.send(sendMessageResponse.encode())
-    #     except:
-    #         print("Error sending send message response")
-    #     return
 
     def Listen(self):
 
@@ -221,8 +99,10 @@ class Server():
             (clientSocket, clientAddress) = self.sock.accept()
             print(clientAddress[0] + ":" + str(clientAddress[1]) + ' connected!')
 
-            clientThread= threading.Thread(target=self.ClientThread, args=(clientSocket, clientAddress))
+            clientThread = threading.Thread(target=self.ClientThread, args=(clientSocket, clientAddress))
             clientThread.start()
+
+            self.BroadcastGameState()
 
         self.sock.close()
 
@@ -250,25 +130,11 @@ class Server():
                     self.Move(clientSocket, clientRequest[1], clientRequest[2])
                 #     self.LogIn(clientSocket, clientAddress, clientRequest[1])
 
-                # elif opCode == "1":
-                #     self.CreateAccount(clientSocket, clientAddress, clientRequest[1])
-                
-                # elif opCode == "2":
-                #     self.SendMessage(clientSocket, clientRequest[1], clientRequest[2], clientRequest[3])
-
-                # elif opCode == "3":
-                #     self.GetMessages(clientSocket, clientRequest[1])
-
-                # elif opCode == "4":
-                #     self.ListAccounts(clientSocket, clientRequest[1])
-
-                # elif opCode == "5":
-                #     self.DeleteAccount(clientSocket, clientRequest[1])
-                    
         # remove client from connection list when they send 0 bytes
-        for user, (addr, port) in self.connections.items():
+        for user, ((addr, port), _) in self.connections.items():
             if addr == clientAddress[0] and port == clientAddress[1]:
                 print("User " + user + " at " + addr + ":" + str(port) + " disconnected")
+                del self.accounts[user]
                 del self.connections[user]
                 break
         clientSocket.close()   
