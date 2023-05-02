@@ -5,6 +5,7 @@ import sys
 import time
 import struct
 import math
+import threading
 
 MSG_SIZE = 1024
 
@@ -70,7 +71,8 @@ class GameClient:
                 self.accounts[user] = {
                     "x": vals[0],
                     "y": vals[1],
-                    "score": vals[2]
+                    "score": vals[2],
+                    "size": vals[3]
                 }
             
             for i in range(0, len(powerUps) - 2, 3):
@@ -114,7 +116,7 @@ class GameClient:
 
         # Send username to server
         self.CreateUser()
-        time.sleep(5)
+        time.sleep(2)
 
         # pygame setup
         pygame.init()
@@ -122,11 +124,8 @@ class GameClient:
         clock = pygame.time.Clock()
         GAME_FONT = pygame.freetype.Font('freesansbold.ttf', 12)
         SCORE_FONT = pygame.freetype.Font('freesansbold.ttf', 48)
+        END_FONT = pygame.freetype.Font('freesansbold.ttf', 128)
         dt = 0
-
-        # player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
-        # self.pos["x"] = player_pos.x
-        # self.pos["y"] = player_pos.y
 
         while True:
             # poll for events
@@ -143,10 +142,22 @@ class GameClient:
 
             # render each player
             for user in self.accounts.keys():
+                if self.accounts[user]["size"] > 15:
+                    if user != self.username:
+                        END_FONT.render_to(screen, (640, 360), "YOU LOST.", (255, 0, 0))
+                    else:
+                        END_FONT.render_to(screen, (640, 360), "YOU WIN!", (0, 255, 0))
+
+                    time.sleep(5)
+                    pygame.quit()
+                    break
+
+
+                currSize = 5 * math.log(float(self.accounts[user]["size"]))
                 userPos = pygame.Vector2(float(self.accounts[user]["x"]), float(self.accounts[user]["y"]))
                 # print(userPos)
-                pygame.draw.circle(screen, "white", userPos, 12)
-                GAME_FONT.render_to(screen, (userPos.x - 12, userPos.y + 25), user, (255, 255, 255))
+                pygame.draw.circle(screen, "white", userPos, currSize)
+                GAME_FONT.render_to(screen, (userPos.x - 12, userPos.y + currSize + 12), user, (255, 255, 255))
                 if user == self.username:
                     SCORE_FONT.render_to(screen, (10, 10), "$" + self.accounts[user]["score"], (0, 255, 0))
 
@@ -155,21 +166,44 @@ class GameClient:
 
                 # draw powerups on screen
                 powerUpPos = pygame.Vector2(float(powerUp["x"]), float(powerUp["y"]))
-                color = "green" if powerUp["type"] == "money" else "blue"
+
+                if powerUp["type"] == "money":
+                    color = "green"
+                elif powerUp["type"] == "speed":
+                    color = "blue"
+                elif powerUp["type"] == "food":
+                    color = "brown"
+
                 pygame.draw.circle(screen, color, powerUpPos, 6)
 
+                try:
+                    x1 = float(self.accounts[self.username]["x"])
+                    y1 = float(self.accounts[self.username]["y"])
+
+                    x2 = float(powerUp["x"])
+                    y2 = float(powerUp["y"])
+                    
+                    distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+                    currSize = 5 * math.log(float(self.accounts[self.username]["size"]))
+
+                    if distance < currSize + 6:
+                        self.ObtainPowerUp(powerUp)
+                except:
+                    pass
+
                 # print("x", self.accounts[str(self.username)]["x"])
-                x1 = float(self.accounts[self.username]["x"])
-                y1 = float(self.accounts[str(self.username)]["y"])
+                # x1 = float(self.accounts[self.username]["x"])
+                # y1 = float(self.accounts[self.username]["y"])
 
-                x2 = float(powerUp["x"])
-                y2 = float(powerUp["y"])
+                # x2 = float(powerUp["x"])
+                # y2 = float(powerUp["y"])
                 
-                distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+                # distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
-                if distance < 12 + 6:
-                    print("here?")
-                    self.ObtainPowerUp(powerUp)
+                # if distance < 12 + 6:
+                #     print("here?")
+                #     self.ObtainPowerUp(powerUp)
 
                 # handle powerUp collision
                 # print(powerUpPos.x)
@@ -184,7 +218,7 @@ class GameClient:
             keys = pygame.key.get_pressed()
 
             # handle client movement
-            movementArray = [keys[pygame.K_w], keys[pygame.K_s], keys[pygame.K_a], keys[pygame.K_d]]
+            movementArray = [keys[pygame.K_w], keys[pygame.K_s], keys[pygame.K_a], keys[pygame.K_d], keys[pygame.K_SPACE]]
             if True in movementArray:
                 self.Move(movementArray)
 

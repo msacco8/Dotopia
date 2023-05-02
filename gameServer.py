@@ -8,6 +8,9 @@ MSG_SIZE = 1024
 PORT = 6000
 PREFIX_FORMAT = "!I"
 MOVE_SPEED = 3.
+START_SIZE = 3
+WIDTH = 1280
+HEIGHT = 720
 
 class Server():
 
@@ -36,7 +39,8 @@ class Server():
                 "x": random.randrange(50, 1230),
                 "y": random.randrange(30, 690),
                 "score": 0,
-                "speed": MOVE_SPEED
+                "speed": MOVE_SPEED,
+                "size": START_SIZE
             }
             self.connections[username] = (clientAddress, clientSocket)
 
@@ -45,15 +49,22 @@ class Server():
         movementArray = [True if x == "1" else False for x in movementString]
         currMoveSpeed = self.accounts[username]["speed"]
 
-        if movementArray[0]:
+        xPos = self.accounts[username]["x"]
+        yPos = self.accounts[username]["y"]
+
+        if movementArray[0] and yPos > 0:
             self.accounts[username]["y"] = round(self.accounts[username]["y"] - currMoveSpeed, 2)
-        if movementArray[1]:
+        if movementArray[1] and yPos < HEIGHT:
             self.accounts[username]["y"] = round(self.accounts[username]["y"] + currMoveSpeed, 2)
-        if movementArray[2]:
+        if movementArray[2] and xPos > 0:
             self.accounts[username]["x"] = round(self.accounts[username]["x"] - currMoveSpeed, 2)
-        if movementArray[3]:
+        if movementArray[3] and xPos < WIDTH:
             self.accounts[username]["x"] = round(self.accounts[username]["x"] + currMoveSpeed, 2)
-    
+        if movementArray[4]:
+            if self.accounts[username]["speed"] <= 20 and self.accounts[username]["score"] > 0:
+                self.accounts[username]["speed"] = round(self.accounts[username]["speed"] + 0.3, 2)
+                self.accounts[username]["score"] -= 1
+
     
     def BroadcastGameState(self):
         # "user1|x:y|user2|x:y"
@@ -64,7 +75,8 @@ class Server():
                     self.accounts[user]["speed"] = round(self.accounts[user]["speed"] - 0.05, 2)
                     
                 gameStatePickle += (user + "|" + str(self.accounts[user]["x"]) + ":" + 
-                                    str(self.accounts[user]["y"]) + ":" + str(self.accounts[user]["score"]) + "|")
+                                    str(self.accounts[user]["y"]) + ":" + str(self.accounts[user]["score"]) + ":" +
+                                    str(self.accounts[user]["size"]) + "|")
 
             time.sleep(0.05)
 
@@ -81,13 +93,14 @@ class Server():
 
 
     def RenderPowerUps(self):
-        types = ["money", "speed"]
+        types = ["money", "speed", "food"]
+        weights = (0.2, 0.5, 0.3)
 
         while True:
             time.sleep(5)
             if len(self.powerUps) <= 30:
                 self.powerUps.append({
-                    "type": random.choice(types),
+                    "type": random.choices(types, weights)[0],
                     "x": random.randrange(50, 1230),
                     "y": random.randrange(30, 690)
                 })
@@ -106,6 +119,9 @@ class Server():
         
         elif type == "speed":
             self.accounts[user]["speed"] += 3
+
+        elif type == "food":
+            self.accounts[user]["size"] += 1
 
         self.powerUps = list(filter(lambda x: x != currPowerUp, self.powerUps))
 
