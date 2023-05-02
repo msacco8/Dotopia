@@ -86,6 +86,20 @@ class Server():
                 "y": random.randrange(30, 690)
             })
 
+    def HandlePowerUpCollision(self, user, type, x, y):
+
+        print("hey!")
+        # handle types of powerups
+        if type == "money":
+            # update score?
+            self.accounts[user]["score"] += 10
+            self.powerUps.remove({
+                "type": type,
+                "x": x,
+                "y": y
+            })
+
+
 
     def Listen(self):
 
@@ -136,7 +150,9 @@ class Server():
 
                 if opCode == "1":
                     self.Move(clientSocket, clientRequest[1], clientRequest[2])
-                #     self.LogIn(clientSocket, clientAddress, clientRequest[1])
+                
+                if opCode == "2":
+                    self.HandlePowerUpCollision(clientSocket, clientRequest[1], clientRequest[2], clientRequest[3], clientRequest[4])
 
         # remove client from connection list when they send 0 bytes
         for user, ((addr, port), _) in self.connections.items():

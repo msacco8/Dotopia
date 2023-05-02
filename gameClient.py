@@ -82,15 +82,11 @@ class GameClient:
         except:
             print("Error receiving game state")
 
-
     def Move(self, movementArray):
         opCode = "1"
 
         movementPickle = "".join(["1" if b else "0" for b in movementArray])
-        # print(movementPickle)
-        # dtPickle = "{:.2f}".format(dt)
 
-        # moveRequest = (opCode + "|"  + movementPickle + "|" + dtPickle).encode()
         moveRequest = (opCode + "|"  + self.username + "|" + movementPickle).encode()
 
         # send message request to server and get response
@@ -99,30 +95,20 @@ class GameClient:
         except:
             print("Error sending move request")
 
-        # try:
-        #     moveResponse = self.sock.recv(MSG_SIZE).decode().strip().split("|")
-        # except:
-        #     print("Error receiving move response")
+    # If collision with powerup is detected, send collision to server to apply and remove from game
+    def ObtainPowerUp(self, powerUp):
+        opCode = "2"
+        print("here")
+        powerUpRequest = (opCode + "|" + self.username + "|" + powerUp["type"] + "|" + powerUp["x"] + "|" + powerUp["y"]).encode()
 
-        # print(moveResponse)
-        # reflect success status to client
-        # if moveResponse[0] == "1":
-        #     # print(int(moveResponse[1]))
-        #     try:
-        #         self.pos["y"] = moveResponse[1]
-        #         self.pos["x"] = moveResponse[2]
-        #         # print(self.pos["x"])
-        #     except:
-        #         print(self.pos['x'])
-        #         print("exception")
+        print(powerUpRequest)
 
-            # print("move success")
-        # else:
-        #     print("move fail")
+        try:
+            self.sock.send(powerUpRequest)
+        except:
+            print("Error sending powerup request")
 
-        # print("got here")
-        return
-    
+
     def Run(self):
 
         # pygame setup
@@ -148,14 +134,12 @@ class GameClient:
                     pygame.quit()
                     break
 
-            # GET OTHER PLAYERS POSITIONS
-            # for player in self.players:
-            #     pygame.draw.circle(screen, "white", )
             self.UpdateGameState()
 
             # fill the screen with a color to wipe away anything from last frame
             screen.fill("black")
 
+            # render each player
             for user in self.accounts.keys():
                 userPos = pygame.Vector2(float(self.accounts[user]["x"]), float(self.accounts[user]["y"]))
                 # print(userPos)
@@ -164,30 +148,33 @@ class GameClient:
                 if user == self.username:
                     SCORE_FONT.render_to(screen, (10, 10), "$" + self.accounts[user]["score"], (0, 255, 0))
 
+            # handle powerups
             for powerUp in self.powerUps:
+
+                # draw powerups on screen
                 powerUpPos = pygame.Vector2(float(powerUp["x"]), float(powerUp["y"]))
                 color = "green" if powerUp["type"] == "money" else "blue"
-                pygame.draw.circle(screen, color, powerUpPos, 6)                     
+                pygame.draw.circle(screen, color, powerUpPos, 6)
 
+                # handle powerUp collision
+                print(powerUpPos.x)
+                withinX = float(powerUp["x"]) - 9 < float(self.accounts[self.username]["x"]) and float(powerUp["x"]) + 9 > float(self.accounts[self.username]["x"])
+                withinY = float(powerUp["y"]) - 9 < float(self.accounts[self.username]["y"]) and float(powerUp["y"]) + 9 > float(self.accounts[self.username]["y"])
+                
+                if withinX and withinY:
+                    print("here?")
+                    self.ObtainPowerUp(powerUp)
+
+            # get dict of all pressed keys
             keys = pygame.key.get_pressed()
+
+            # handle client movement
             movementArray = [keys[pygame.K_w], keys[pygame.K_s], keys[pygame.K_a], keys[pygame.K_d]]
             if True in movementArray:
-                # self.Move(movementArray, self.dt)
-                # print("here")
                 self.Move(movementArray)
-                # player_pos.x = float(self.pos["x"])
-                # player_pos.y = float(self.pos["y"])
-
-            
-            # print(player_pos.x)
-
-            # text_surface, rect = GAME_FONT.render("Hello World!", (0, 0, 0))
-            # screen.blit(text_surface, (40, 250))
-            # GAME_FONT.render_to(screen, (player_pos.x - 10, player_pos.y + 20), username, (255, 255, 255))
 
             # flip() the display to put your work on screen
             pygame.display.flip()
-            # print("hey")
 
             # limits FPS to 60
             # dt is delta time in seconds since last frame, used for framerate-
