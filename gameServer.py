@@ -7,6 +7,7 @@ import struct
 MSG_SIZE = 1024
 PORT = 6000
 PREFIX_FORMAT = "!I"
+MOVE_SPEED = 3
 
 class Server():
 
@@ -37,40 +38,16 @@ class Server():
 
 
     def Move(self, clientSocket, username, movementString):
-        moveResponse = ''
-
-        # dt = float(dtString)
-
-        print(movementString)
         movementArray = [True if x == "1" else False for x in movementString]
-        print(movementArray)
 
-        # if movementArray[0]:
-        #     self.pos["y"] -= 300 *dt
-        # if movementArray[1]:
-        #     self.pos["y"] += 300 *dt
-        # if movementArray[2]:
-        #     self.pos["x"] -= 300 *dt
-        # if movementArray[3]:
-        #     self.pos["x"] += 300 *dt
         if movementArray[0]:
-            self.accounts[username]["y"] -= 1
+            self.accounts[username]["y"] -= MOVE_SPEED
         if movementArray[1]:
-            self.accounts[username]["y"] += 1
+            self.accounts[username]["y"] += MOVE_SPEED
         if movementArray[2]:
-            self.accounts[username]["x"] -= 1
+            self.accounts[username]["x"] -= MOVE_SPEED
         if movementArray[3]:
-            self.accounts[username]["x"] += 1
-
-
-        moveResponse = "1" + "|" + str(self.accounts[username]["y"]) + "|" + str(self.accounts[username]["x"])
-
-        print(moveResponse)
-        try:
-            clientSocket.send(moveResponse.encode())
-        except:
-            print("Error sending move response")
-        return
+            self.accounts[username]["x"] += MOVE_SPEED
     
     
     def BroadcastGameState(self):
@@ -80,11 +57,9 @@ class Server():
             for user in self.accounts.keys():
                 gameStatePickle += user + "|" + str(self.accounts[user]["x"]) + ":" + str(self.accounts[user]["y"]) + "|"
 
-            time.sleep(2)
+            time.sleep(0.05)
 
             gameStatePickle = gameStatePickle[:-1]
-            print(gameStatePickle)
-
             prefix = struct.pack(PREFIX_FORMAT, len(gameStatePickle))
 
             for _, socket in self.connections.values():
@@ -121,8 +96,9 @@ class Server():
 
         # receive MSG_SIZE until 0 bytes are received and exit control loop
         while True:
-            clientRequest = clientSocket.recv(MSG_SIZE).decode()
-            if not clientRequest:
+            try:
+                clientRequest = clientSocket.recv(MSG_SIZE).decode()
+            except:
                 break
             if clientRequest:
                 # scan request string by pipe delimiter

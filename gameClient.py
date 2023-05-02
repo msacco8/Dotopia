@@ -25,8 +25,6 @@ class GameClient:
         }
 
         self.accounts = {}
-
-        self.players = []
         
 
     def Connect(self, serverAddress):
@@ -62,9 +60,8 @@ class GameClient:
                 message += chunk
 
             gameStateResponse = message.decode().strip().split("|")
-            # time.sleep(2)
-            # if len(gameStateResponse) > 1:
-                # print(gameStateResponse)
+            self.accounts = {}
+
             for i in range(0, len(gameStateResponse) - 1, 2):
                 user = gameStateResponse[i]
                 pos = gameStateResponse[i + 1].split(":")
@@ -81,7 +78,7 @@ class GameClient:
         opCode = "1"
 
         movementPickle = "".join(["1" if b else "0" for b in movementArray])
-        print(movementPickle)
+        # print(movementPickle)
         # dtPickle = "{:.2f}".format(dt)
 
         # moveRequest = (opCode + "|"  + movementPickle + "|" + dtPickle).encode()
@@ -124,7 +121,6 @@ class GameClient:
         screen = pygame.display.set_mode((1280, 720))
         clock = pygame.time.Clock()
         GAME_FONT = pygame.freetype.Font('freesansbold.ttf', 12)
-        running = True
         dt = 0
 
         # player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
@@ -134,12 +130,13 @@ class GameClient:
         # Send username to server
         self.CreateUser()
 
-        while running:
+        while True:
             # poll for events
             # pygame.QUIT event means the user clicked X to close your window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    pygame.quit()
+                    break
 
             # GET OTHER PLAYERS POSITIONS
             # for player in self.players:
@@ -151,6 +148,7 @@ class GameClient:
 
             for user in self.accounts.keys():
                 userPos = pygame.Vector2(float(self.accounts[user]["x"]), float(self.accounts[user]["y"]))
+                # print(userPos)
                 pygame.draw.circle(screen, "white", userPos, 5)
                 GAME_FONT.render_to(screen, (userPos.x - 10, userPos.y + 20), user, (255, 255, 255))
 
@@ -179,7 +177,7 @@ class GameClient:
             # independent physics.
             # self.dt = clock.tick(60) / 1000
 
-        pygame.quit()
+        # pygame.quit()
 
 if __name__ == '__main__':
     try:
