@@ -112,6 +112,10 @@ class GameClient:
 
     def Run(self):
 
+        # Send username to server
+        self.CreateUser()
+        time.sleep(5)
+
         # pygame setup
         pygame.init()
         screen = pygame.display.set_mode((1280, 720))
@@ -123,9 +127,6 @@ class GameClient:
         # player_pos = pygame.Vector2(screen.get_width() / 2, screen.get_height() / 2)
         # self.pos["x"] = player_pos.x
         # self.pos["y"] = player_pos.y
-
-        # Send username to server
-        self.CreateUser()
 
         while True:
             # poll for events
@@ -158,7 +159,7 @@ class GameClient:
                 pygame.draw.circle(screen, color, powerUpPos, 6)
 
                 # print("x", self.accounts[str(self.username)]["x"])
-                x1 = float(self.accounts[str(self.username)]["x"])
+                x1 = float(self.accounts[self.username]["x"])
                 y1 = float(self.accounts[str(self.username)]["y"])
 
                 x2 = float(powerUp["x"])
