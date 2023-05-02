@@ -7,7 +7,7 @@ import struct
 MSG_SIZE = 1024
 PORT = 6000
 PREFIX_FORMAT = "!I"
-MOVE_SPEED = 3
+MOVE_SPEED = 3.
 
 class Server():
 
@@ -35,22 +35,24 @@ class Server():
             self.accounts[username] = {
                 "x": random.randrange(50, 1230),
                 "y": random.randrange(30, 690),
-                "score": 0
+                "score": 0,
+                "speed": MOVE_SPEED
             }
             self.connections[username] = (clientAddress, clientSocket)
 
 
     def Move(self, clientSocket, username, movementString):
         movementArray = [True if x == "1" else False for x in movementString]
+        currMoveSpeed = self.accounts[username]["speed"]
 
         if movementArray[0]:
-            self.accounts[username]["y"] -= MOVE_SPEED
+            self.accounts[username]["y"] = round(self.accounts[username]["y"] - currMoveSpeed, 2)
         if movementArray[1]:
-            self.accounts[username]["y"] += MOVE_SPEED
+            self.accounts[username]["y"] = round(self.accounts[username]["y"] + currMoveSpeed, 2)
         if movementArray[2]:
-            self.accounts[username]["x"] -= MOVE_SPEED
+            self.accounts[username]["x"] = round(self.accounts[username]["x"] - currMoveSpeed, 2)
         if movementArray[3]:
-            self.accounts[username]["x"] += MOVE_SPEED
+            self.accounts[username]["x"] = round(self.accounts[username]["x"] + currMoveSpeed, 2)
     
     
     def BroadcastGameState(self):
@@ -58,6 +60,9 @@ class Server():
         while True:
             gameStatePickle = ''
             for user in self.accounts.keys():
+                if self.accounts[user]["speed"] > MOVE_SPEED:
+                    self.accounts[user]["speed"] = round(self.accounts[user]["speed"] - 0.05, 2)
+                    
                 gameStatePickle += (user + "|" + str(self.accounts[user]["x"]) + ":" + 
                                     str(self.accounts[user]["y"]) + ":" + str(self.accounts[user]["score"]) + "|")
 
@@ -80,25 +85,29 @@ class Server():
 
         while True:
             time.sleep(5)
-            self.powerUps.append({
-                "type": random.choice(types),
-                "x": random.randrange(50, 1230),
-                "y": random.randrange(30, 690)
-            })
+            if len(self.powerUps) <= 30:
+                self.powerUps.append({
+                    "type": random.choice(types),
+                    "x": random.randrange(50, 1230),
+                    "y": random.randrange(30, 690)
+                })
 
-    def HandlePowerUpCollision(self, user, type, x, y):
-
-        print("hey!")
+    def HandlePowerUpCollision(self, clientSocket, user, type, x, y):
+        
+        currPowerUp = {
+            "type": type,
+            "x": int(x),
+            "y": int(y)
+        }
         # handle types of powerups
         if type == "money":
             # update score?
             self.accounts[user]["score"] += 10
-            self.powerUps.remove({
-                "type": type,
-                "x": x,
-                "y": y
-            })
+        
+        elif type == "speed":
+            self.accounts[user]["speed"] += 3
 
+        self.powerUps = list(filter(lambda x: x != currPowerUp, self.powerUps))
 
 
     def Listen(self):

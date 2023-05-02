@@ -4,6 +4,7 @@ import pygame.freetype
 import sys
 import time
 import struct
+import math
 
 MSG_SIZE = 1024
 
@@ -156,14 +157,27 @@ class GameClient:
                 color = "green" if powerUp["type"] == "money" else "blue"
                 pygame.draw.circle(screen, color, powerUpPos, 6)
 
-                # handle powerUp collision
-                print(powerUpPos.x)
-                withinX = float(powerUp["x"]) - 9 < float(self.accounts[self.username]["x"]) and float(powerUp["x"]) + 9 > float(self.accounts[self.username]["x"])
-                withinY = float(powerUp["y"]) - 9 < float(self.accounts[self.username]["y"]) and float(powerUp["y"]) + 9 > float(self.accounts[self.username]["y"])
+                # print("x", self.accounts[str(self.username)]["x"])
+                x1 = float(self.accounts[str(self.username)]["x"])
+                y1 = float(self.accounts[str(self.username)]["y"])
+
+                x2 = float(powerUp["x"])
+                y2 = float(powerUp["y"])
                 
-                if withinX and withinY:
+                distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+                if distance < 12 + 6:
                     print("here?")
                     self.ObtainPowerUp(powerUp)
+
+                # handle powerUp collision
+                # print(powerUpPos.x)
+                # withinX = int(powerUp["x"]) - 9 < int(self.accounts[self.username]["x"]) and int(powerUp["x"]) + 9 > int(self.accounts[self.username]["x"])
+                # withinY = int(powerUp["y"]) - 9 < int(self.accounts[self.username]["y"]) and int(powerUp["y"]) + 9 > int(self.accounts[self.username]["y"])
+                
+                # if withinX and withinY:
+                #     print("here?")
+                #     self.ObtainPowerUp(powerUp)
 
             # get dict of all pressed keys
             keys = pygame.key.get_pressed()
