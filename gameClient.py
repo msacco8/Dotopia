@@ -142,13 +142,15 @@ class GameClient:
 
             # render each player
             for user in self.accounts.keys():
-                if self.accounts[user]["size"] > 15:
+                
+                if int(self.accounts[user]["size"]) > 15:
                     if user != self.username:
-                        END_FONT.render_to(screen, (640, 360), "YOU LOST.", (255, 0, 0))
+                        END_FONT.render_to(screen, (340, 300), "YOU LOST.", (255, 0, 0))
                     else:
-                        END_FONT.render_to(screen, (640, 360), "YOU WIN!", (0, 255, 0))
+                        END_FONT.render_to(screen, (340, 300), "YOU WIN!", (0, 255, 0))
 
-                    time.sleep(5)
+                    pygame.display.update()
+                    pygame.time.delay(10000)
                     pygame.quit()
                     break
 
@@ -160,6 +162,8 @@ class GameClient:
                 GAME_FONT.render_to(screen, (userPos.x - 12, userPos.y + currSize + 12), user, (255, 255, 255))
                 if user == self.username:
                     SCORE_FONT.render_to(screen, (10, 10), "$" + self.accounts[user]["score"], (0, 255, 0))
+                # END_FONT.render_to(screen, (340, 300), "YOU WIN!", (0, 255, 0))
+                
 
             # handle powerups
             for powerUp in self.powerUps:

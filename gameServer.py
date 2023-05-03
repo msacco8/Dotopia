@@ -3,6 +3,7 @@ import threading
 import random
 import time
 import struct
+import json
 
 MSG_SIZE = 1024
 PORT = 6000
@@ -90,6 +91,11 @@ class Server():
 
             for _, socket in self.connections.values():
                 socket.sendall(prefix + gameStatePickle.encode())
+
+            with open("logs1.txt", "w") as logs:
+                accounts_json = json.dumps(self.accounts)
+                powerups_json = json.dumps(self.powerUps)
+                logs.write(accounts_json + '\n' + powerups_json)
 
 
     def RenderPowerUps(self):
