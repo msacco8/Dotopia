@@ -18,7 +18,7 @@ This will display the IP address and port that the server is listening on in the
 python3 client.py <server IP address>
 ```
 
-Once connected, the client will display instructions for using the messaging system.
+Once connected, the client will prompt the user for a username and then open the game window.
 
 To run the Client and Server tests enter the following commands in the root directory.
 
