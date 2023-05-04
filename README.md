@@ -88,37 +88,6 @@ The "Move" method takes into account an array based on the keys pressed and eith
 
 The server logs the current state of the game every 50 milliseconds to a file named "logs1.txt". The log file contains the current state of the "accounts" dictionary and the "powerUps" list. Overall, the server is designed to handle multiple clients and maintain the state of the game. It provides methods to create new users, move users, handle power-up collisions, and broadcast the current state of the game to all connected clients.
 
-## Extra
-Overview:
+# Performance
 
-Brief discussion of:
-What we built
-Client/server architecture
-Wire protocol
-Distributed computing concepts that we focused on
-
-Game Mechanics:
-
-Client:
-
-Dispatch events (discuss wire protocol for each):
-CreateUser
-Move
-ObtainPowerUp
-UpdateGameState
-Wire protocol discussion
-Receive 4 byte header to get message length
-Receiving bytes until message is length described in header
-Split message into the two objects that make up the game state
-Split each object into fields based on object type
-Update local objects to reflect new game state
-Main game loop
-Renders each element of game state to client screen
-Checks conditions to dispatch events
-Powerup collision - ObtainPowerUp
-State of pressed keys - Move
-
-Server:
-Broadcast thread
-Powerup thread
-Thread for each client
+Through the use of logging on the client side we were able to identify the most cumbersome processes and target them for optimization. To begin, it was clear that the "UpdateGameState" method was significantly more performance affecting than the other methods in the main game loop. To begin, we tried using non-blocking sockets to receive the game state from the server. After implementing this we ran tests in the logs and found that there was no overall increase in performance. From here, we began to look at the depickling methods that we used. Compared to the messaging application, this game used different types of delimiters and made multiple calls to split() when a message was received. We replaced the use of split by regex, and could then split the message into the necessary fields with two grouping calls. After testing this and observing the aggregates of logs on multiple runs, we confirmed that this change gave us a slight performance boost and contributed to an overall better gaming experience.
