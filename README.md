@@ -38,7 +38,9 @@ To aggregate the client timing logs enter the following command in the root dire
 python3 timing.py
 ```
 
-## Gameplay Mechanics
+## Gameplay Design
+
+Each player is comprised of a circle of variable size and a text element for their username. Each powerup is a circle of fixed size and color based on the type of power up. Red powerups represent food, which increases the radius of the player logarithmically. Green powerups increase the amount of money you have, which is denoted by a green text element in the top left corner. Money can be used by holding the space bar, which will linearly increase the player's speed for each dollar spent. Blue powerups increase the player speed by a constant amount, to a certain ceiling limit. Players can move around the map using the W, A, S, D keys. Players must race to increase their size to a defined value by collecting powerups, in which the game ends. When the game ends, players will be notified of their status and the window will exit after a short duration.
 
 ## Client Architecture
 

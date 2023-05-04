@@ -91,47 +91,6 @@ class GameClient:
 
         except:
             print("Error receiving game state")
-    
-    # def UpdateGameState(self):
-    #     try:
-    #         prefix = b""
-    #         while len(prefix) == 0:
-    #             prefix = self.sock.recv(4)
-    #         messageLength = struct.unpack(PREFIX_FORMAT, prefix)[0]
-
-    #         message = b""
-    #         while len(message) < messageLength:
-    #             chunk = self.sock.recv(messageLength - len(message))
-    #             if not chunk:
-    #                 raise RuntimeError("socket connection broken")
-    #             message += chunk
-
-    #         gameStateResponse = message.decode().strip()
-    #         # print(gameStateResponse)
-    #         split = gameStateResponse.split("~")
-    #         userInfo, powerUps = split[0].split("|"), split[1].split("|")
-    #         self.accounts = {}
-    #         self.powerUps = []
-
-    #         for i in range(0, len(userInfo) - 1, 2):
-    #             user = userInfo[i]
-    #             vals = userInfo[i + 1].split(":")
-    #             self.accounts[user] = {
-    #                 "x": vals[0],
-    #                 "y": vals[1],
-    #                 "score": vals[2],
-    #                 "size": vals[3]
-    #             }
-            
-    #         for i in range(0, len(powerUps) - 2, 3):
-    #             self.powerUps.append({
-    #                 "type": powerUps[i],
-    #                 "x": powerUps[i+1],
-    #                 "y": powerUps[i+2]
-    #             })
-                
-    #     except:
-    #         print("Error receiving game state")
 
     def Move(self, movementArray):
         opCode = "1"
@@ -249,6 +208,7 @@ class GameClient:
                         self.ObtainPowerUp(powerUp)
                 except:
                     pass
+                
             powerUpEndTime = time.time()
 
             # get dict of all pressed keys
@@ -261,14 +221,15 @@ class GameClient:
                 self.Move(movementArray)
             moveEndTime = time.time()
 
-            with open("timingLog2.txt", "a") as logs:
-                timingObj = {
-                    "updateGameState" : stateEndTime - stateStartTime,
-                    "renderPlayers" : playerEndTime - playerStartTime,
-                    "renderPowerUps" : powerUpEndTime - powerUpStartTime,
-                    "handleMovement" : moveEndTime - moveStartTime
-                }
-                logs.write(json.dumps(timingObj) + "\n")
+            # for timing game loop processes
+            # with open("./logs/timingLog2.txt", "a") as logs:
+            #     timingObj = {
+            #         "updateGameState" : stateEndTime - stateStartTime,
+            #         "renderPlayers" : playerEndTime - playerStartTime,
+            #         "renderPowerUps" : powerUpEndTime - powerUpStartTime,
+            #         "handleMovement" : moveEndTime - moveStartTime
+            #     }
+            #     logs.write(json.dumps(timingObj) + "\n")
 
             # flip() the display to put your work on screen
             pygame.display.flip()

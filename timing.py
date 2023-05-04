@@ -8,7 +8,7 @@ counters = {field: 0 for field in fields}
 timers = {field: 0 for field in fields}
 
 # Open the file in read mode
-with open("timingLog1.txt", "r") as logs:
+with open("./logs/timingLog1.txt", "r") as logs:
     for line in logs:
         # Load the JSON data from the line
         timingObj = json.loads(line.strip())
@@ -21,7 +21,7 @@ with open("timingLog1.txt", "r") as logs:
 # Calculate the average time for each field
 averages = {field: timers[field] / counters[field] for field in fields}
 
-with open("timingAverages1.txt", "a") as logs:
+with open("./logs/timingAverages1.txt", "a") as logs:
     logs.write(json.dumps(averages) + '\n')
 
 # Print the average times
