@@ -6,7 +6,7 @@ Project done by John Minicus and Michael Sacco
 
 Dotopia uses only the Python standard library
 
-To run the client and server. make sure that the two terminals are on the same network and that you have are in the root directory of 'dotopia'. Then, run:
+To run the client and server. make sure that the two terminals are on the same network and that you have are in the root directory of 'Dotopia'. Then, run:
 
 ```bash
 python3 gameServer.py
@@ -30,6 +30,12 @@ python3 gameClientTests.py
 Server:
 ```bash
 python3 gameServerTests.py
+```
+
+To aggregate the client timing logs enter the following command in the root directory.
+
+```bash
+python3 timing.py
 ```
 
 ## Gameplay Mechanics
