@@ -65,6 +65,30 @@ The user input component of the client application is responsible for handling u
 Overall, the client-side architecture is designed to be scalable, flexible, and fault-tolerant. The client sends and receives messages using a well-defined message format, which makes it easy to extend the functionality of the client and server. The use of regular expressions to parse the game state information and dictionaries to store the information makes it easy and more efficient to update the game state. The Pygame library provides a powerful and flexible graphics engine for rendering the game, and the event module makes it easy to handle user input. The client application is fault-tolerant in the sense that it can handle errors when sending and receiving messages and when parsing the game state information.
 
 ## Server Architecture
+
+The server is designed to handle multiple clients simultaneously. It communicates with clients using a TCP socket.
+
+The server creates a socket object and listens to a port for incoming connections. When a client connects to the server, the server accepts the connection and creates a thread to handle the client. The thread is responsible for receiving messages from the client and calling appropriate methods on the server to handle the request. The server is constantly receiving bytes from each client until a message is received, and the message is deconstructed into its operation code and arguments. The server then calls methods to update the game state based on the following operation codes that are received.
+
+"0" - CreateUser(clientSocket, clientAddress, username) - updates game state by creating a new user
+"1" - Move(clientSocket, username, movementString) - updates game state based on user and the keys that they are currently pressing
+"2" - HandlePowerUpCollision(clientSocket, user, type, x, y) - updates game state based on user, and the type and position of the powerup they collided with
+
+The server stores the user data in a dictionary named "accounts". This dictionary contains information about each user such as their username, current position, score, speed, and size. When a new user is created, the server adds a new key-value pair to the "accounts" dictionary. Additionally, powerups are stored in a list for rendering each powerup to each client's game window.
+
+The server has a "BroadcastGameState" method that sends the current state of the game to all connected clients. This method runs in a separate thread and is responsible for sending updates to clients every 50 milliseconds. The current state of the game includes the position, score, speed, and size of each user as well as the location of all power-ups on the game board.
+
+The server also has a "RenderPowerUps" method that runs in a separate thread and is responsible for creating new power-ups at random locations on the game board. The method checks the number of power-ups present on the game board and creates new power-ups if the number is less than or equal to 30.
+
+The server has a method named "HandlePowerUpCollision" that is dispatched by the client when a user collides with a power-up. This method updates the user's score, speed, or size based on the type of power-up and removes the power-up from the game board.
+
+The "Move" method takes into account an array based on the keys pressed and either alters the position of the player or increases their speed in the case that the space bar is pressed.
+
+"RenderPowerUps", "Move" and "HandlePowerUpCollision" handle thread safety by acquiring locks before they update their respective objects. Even though it was a rare occurrence, through testing we found that occasionally when broadcasting the game state we would receive an error indicating that a dictionary was modified while being accessed. The acquiring of locks prior to modifying the game state objects resolves this issue by causing the functions that attempt to read objects being modified to sleep until the lock is released. This created a more robust gaming environment that can handle edge cases like this.
+
+The server logs the current state of the game every 50 milliseconds to a file named "logs1.txt". The log file contains the current state of the "accounts" dictionary and the "powerUps" list. Overall, the server is designed to handle multiple clients and maintain the state of the game. It provides methods to create new users, move users, handle power-up collisions, and broadcast the current state of the game to all connected clients.
+
+## Extra
 Overview:
 
 Brief discussion of:

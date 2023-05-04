@@ -26,6 +26,9 @@ class Server():
 
         self.powerUps = []
 
+        self.powerUpsLock = threading.Lock()
+        self.accountsLock = threading.Lock()
+
         # initialize server socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -53,18 +56,23 @@ class Server():
         xPos = self.accounts[username]["x"]
         yPos = self.accounts[username]["y"]
 
-        if movementArray[0] and yPos > 0:
-            self.accounts[username]["y"] = round(self.accounts[username]["y"] - currMoveSpeed, 2)
-        if movementArray[1] and yPos < HEIGHT:
-            self.accounts[username]["y"] = round(self.accounts[username]["y"] + currMoveSpeed, 2)
-        if movementArray[2] and xPos > 0:
-            self.accounts[username]["x"] = round(self.accounts[username]["x"] - currMoveSpeed, 2)
-        if movementArray[3] and xPos < WIDTH:
-            self.accounts[username]["x"] = round(self.accounts[username]["x"] + currMoveSpeed, 2)
-        if movementArray[4]:
-            if self.accounts[username]["speed"] <= 20 and self.accounts[username]["score"] > 0:
-                self.accounts[username]["speed"] = round(self.accounts[username]["speed"] + 0.3, 2)
-                self.accounts[username]["score"] -= 1
+        self.accountsLock.acquire()
+
+        try:
+            if movementArray[0] and yPos > 0:
+                self.accounts[username]["y"] = round(self.accounts[username]["y"] - currMoveSpeed, 2)
+            if movementArray[1] and yPos < HEIGHT:
+                self.accounts[username]["y"] = round(self.accounts[username]["y"] + currMoveSpeed, 2)
+            if movementArray[2] and xPos > 0:
+                self.accounts[username]["x"] = round(self.accounts[username]["x"] - currMoveSpeed, 2)
+            if movementArray[3] and xPos < WIDTH:
+                self.accounts[username]["x"] = round(self.accounts[username]["x"] + currMoveSpeed, 2)
+            if movementArray[4]:
+                if self.accounts[username]["speed"] <= 20 and self.accounts[username]["score"] > 0:
+                    self.accounts[username]["speed"] = round(self.accounts[username]["speed"] + 0.3, 2)
+                    self.accounts[username]["score"] -= 1
+        finally:
+            self.accountsLock.release()
 
     
     def BroadcastGameState(self):
@@ -73,7 +81,11 @@ class Server():
             gameStatePickle = ''
             for user in self.accounts.keys():
                 if self.accounts[user]["speed"] > MOVE_SPEED:
-                    self.accounts[user]["speed"] = round(self.accounts[user]["speed"] - 0.05, 2)
+                    self.accountsLock.acquire()
+                    try:
+                        self.accounts[user]["speed"] = round(self.accounts[user]["speed"] - 0.05, 2)
+                    finally:
+                        self.accountsLock.release()
                     
                 gameStatePickle += (user + "|" + str(self.accounts[user]["x"]) + ":" + 
                                     str(self.accounts[user]["y"]) + ":" + str(self.accounts[user]["score"]) + ":" +
@@ -105,11 +117,15 @@ class Server():
         while True:
             time.sleep(2)
             if len(self.powerUps) <= 30:
-                self.powerUps.append({
-                    "type": random.choices(types, weights)[0],
-                    "x": random.randrange(50, 1230),
-                    "y": random.randrange(30, 690)
-                })
+                self.powerUpsLock.acquire()
+                try:
+                    self.powerUps.append({
+                        "type": random.choices(types, weights)[0],
+                        "x": random.randrange(50, 1230),
+                        "y": random.randrange(30, 690)
+                    })
+                finally:
+                    self.powerUpsLock.release()
 
     def HandlePowerUpCollision(self, clientSocket, user, type, x, y):
         
@@ -118,19 +134,25 @@ class Server():
             "x": int(x),
             "y": int(y)
         }
-        # handle types of powerups
-        if type == "money":
-            # update score?
-            self.accounts[user]["score"] += 10
-        
-        elif type == "speed" and self.accounts[user]["speed"] <= 17:
-            self.accounts[user]["speed"] += 3
 
-        elif type == "food":
-            self.accounts[user]["size"] += 1
+        self.powerUpsLock.acquire()
 
-        self.powerUps = list(filter(lambda x: x != currPowerUp, self.powerUps))
+        try:
+            # handle types of powerups
+            if type == "money":
+                # update score?
+                self.accounts[user]["score"] += 10
+            
+            elif type == "speed" and self.accounts[user]["speed"] <= 17:
+                self.accounts[user]["speed"] += 3
 
+            elif type == "food":
+                self.accounts[user]["size"] += 1
+
+            self.powerUps = list(filter(lambda x: x != currPowerUp, self.powerUps))
+
+        finally:
+            self.powerUpsLock.release()
 
     def Listen(self):
 
