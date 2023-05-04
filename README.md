@@ -70,9 +70,9 @@ The server is designed to handle multiple clients simultaneously. It communicate
 
 The server creates a socket object and listens to a port for incoming connections. When a client connects to the server, the server accepts the connection and creates a thread to handle the client. The thread is responsible for receiving messages from the client and calling appropriate methods on the server to handle the request. The server is constantly receiving bytes from each client until a message is received, and the message is deconstructed into its operation code and arguments. The server then calls methods to update the game state based on the following operation codes that are received.
 
-"0" - CreateUser(clientSocket, clientAddress, username) - updates game state by creating a new user
-"1" - Move(clientSocket, username, movementString) - updates game state based on user and the keys that they are currently pressing
-"2" - HandlePowerUpCollision(clientSocket, user, type, x, y) - updates game state based on user, and the type and position of the powerup they collided with
+* "0" - CreateUser(clientSocket, clientAddress, username) - updates game state by creating a new user
+* "1" - Move(clientSocket, username, movementString) - updates game state based on user and the keys that they are currently pressing
+* "2" - HandlePowerUpCollision(clientSocket, user, type, x, y) - updates game state based on user, and the type and position of the powerup they collided with
 
 The server stores the user data in a dictionary named "accounts". This dictionary contains information about each user such as their username, current position, score, speed, and size. When a new user is created, the server adds a new key-value pair to the "accounts" dictionary. Additionally, powerups are stored in a list for rendering each powerup to each client's game window.
 
