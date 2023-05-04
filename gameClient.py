@@ -6,6 +6,8 @@ import time
 import struct
 import math
 import threading
+import json
+import re
 
 MSG_SIZE = 1024
 
@@ -58,32 +60,78 @@ class GameClient:
                     raise RuntimeError("socket connection broken")
                 message += chunk
 
-            gameStateResponse = message.decode().strip()
-            print(gameStateResponse)
-            split = gameStateResponse.split("~")
-            userInfo, powerUps = split[0].split("|"), split[1].split("|")
+            gameStateResponse = message.decode().strip().split("~")
+            # print(gameStateResponse)
+
+            # Use regular expressions to extract user information and power-ups
+            user_regex = r"(\w+)\|([\d.]+):([\d.]+):([\d.]+):([\d.]+)"
+            powerup_regex = r"(\w+)\|([0-9\.]+)\|([0-9\.]+)"
+            user_matches = re.findall(user_regex, gameStateResponse[0])
+            powerup_matches = re.findall(powerup_regex, gameStateResponse[1])
+
             self.accounts = {}
             self.powerUps = []
 
-            for i in range(0, len(userInfo) - 1, 2):
-                user = userInfo[i]
-                vals = userInfo[i + 1].split(":")
+            for match in user_matches:
+                user, x, y, score, size = match
                 self.accounts[user] = {
-                    "x": vals[0],
-                    "y": vals[1],
-                    "score": vals[2],
-                    "size": vals[3]
+                    "x": x,
+                    "y": y,
+                    "score": score,
+                    "size": size
                 }
-            
-            for i in range(0, len(powerUps) - 2, 3):
+
+            for match in powerup_matches:
+                powerup_type, x, y = match
                 self.powerUps.append({
-                    "type": powerUps[i],
-                    "x": powerUps[i+1],
-                    "y": powerUps[i+2]
+                    "type": powerup_type,
+                    "x": x,
+                    "y": y
                 })
-                
+
         except:
             print("Error receiving game state")
+    
+    # def UpdateGameState(self):
+    #     try:
+    #         prefix = b""
+    #         while len(prefix) == 0:
+    #             prefix = self.sock.recv(4)
+    #         messageLength = struct.unpack(PREFIX_FORMAT, prefix)[0]
+
+    #         message = b""
+    #         while len(message) < messageLength:
+    #             chunk = self.sock.recv(messageLength - len(message))
+    #             if not chunk:
+    #                 raise RuntimeError("socket connection broken")
+    #             message += chunk
+
+    #         gameStateResponse = message.decode().strip()
+    #         # print(gameStateResponse)
+    #         split = gameStateResponse.split("~")
+    #         userInfo, powerUps = split[0].split("|"), split[1].split("|")
+    #         self.accounts = {}
+    #         self.powerUps = []
+
+    #         for i in range(0, len(userInfo) - 1, 2):
+    #             user = userInfo[i]
+    #             vals = userInfo[i + 1].split(":")
+    #             self.accounts[user] = {
+    #                 "x": vals[0],
+    #                 "y": vals[1],
+    #                 "score": vals[2],
+    #                 "size": vals[3]
+    #             }
+            
+    #         for i in range(0, len(powerUps) - 2, 3):
+    #             self.powerUps.append({
+    #                 "type": powerUps[i],
+    #                 "x": powerUps[i+1],
+    #                 "y": powerUps[i+2]
+    #             })
+                
+    #     except:
+    #         print("Error receiving game state")
 
     def Move(self, movementArray):
         opCode = "1"
@@ -101,10 +149,10 @@ class GameClient:
     # If collision with powerup is detected, send collision to server to apply and remove from game
     def ObtainPowerUp(self, powerUp):
         opCode = "2"
-        print("here")
+        # print("here")
         powerUpRequest = (opCode + "|" + self.username + "|" + powerUp["type"] + "|" + powerUp["x"] + "|" + powerUp["y"]).encode()
 
-        print(powerUpRequest)
+        # print(powerUpRequest)
 
         try:
             self.sock.send(powerUpRequest)
@@ -114,7 +162,6 @@ class GameClient:
 
     def Run(self):
 
-        # Send username to server
         self.CreateUser()
         time.sleep(2)
 
@@ -127,23 +174,28 @@ class GameClient:
         END_FONT = pygame.freetype.Font('freesansbold.ttf', 128)
         dt = 0
 
+        # get username from user
+        screen.fill("black")
+
         while True:
             # poll for events
             # pygame.QUIT event means the user clicked X to close your window
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    break
-
+                    sys.exit
+            stateStartTime = time.time()
             self.UpdateGameState()
+            stateEndTime = time.time()
 
             # fill the screen with a color to wipe away anything from last frame
             screen.fill("black")
 
+            playerStartTime = time.time()
             # render each player
             for user in self.accounts.keys():
                 
-                if int(self.accounts[user]["size"]) > 15:
+                if int(self.accounts[user]["size"]) > 10:
                     if user != self.username:
                         END_FONT.render_to(screen, (340, 300), "YOU LOST.", (255, 0, 0))
                     else:
@@ -152,7 +204,7 @@ class GameClient:
                     pygame.display.update()
                     pygame.time.delay(10000)
                     pygame.quit()
-                    break
+                    sys.exit
 
 
                 currSize = 5 * math.log(float(self.accounts[user]["size"]))
@@ -163,8 +215,10 @@ class GameClient:
                 if user == self.username:
                     SCORE_FONT.render_to(screen, (10, 10), "$" + self.accounts[user]["score"], (0, 255, 0))
                 # END_FONT.render_to(screen, (340, 300), "YOU WIN!", (0, 255, 0))
-                
 
+            playerEndTime = time.time()
+
+            powerUpStartTime = time.time()
             # handle powerups
             for powerUp in self.powerUps:
 
@@ -195,51 +249,34 @@ class GameClient:
                         self.ObtainPowerUp(powerUp)
                 except:
                     pass
-
-                # print("x", self.accounts[str(self.username)]["x"])
-                # x1 = float(self.accounts[self.username]["x"])
-                # y1 = float(self.accounts[self.username]["y"])
-
-                # x2 = float(powerUp["x"])
-                # y2 = float(powerUp["y"])
-                
-                # distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-                # if distance < 12 + 6:
-                #     print("here?")
-                #     self.ObtainPowerUp(powerUp)
-
-                # handle powerUp collision
-                # print(powerUpPos.x)
-                # withinX = int(powerUp["x"]) - 9 < int(self.accounts[self.username]["x"]) and int(powerUp["x"]) + 9 > int(self.accounts[self.username]["x"])
-                # withinY = int(powerUp["y"]) - 9 < int(self.accounts[self.username]["y"]) and int(powerUp["y"]) + 9 > int(self.accounts[self.username]["y"])
-                
-                # if withinX and withinY:
-                #     print("here?")
-                #     self.ObtainPowerUp(powerUp)
+            powerUpEndTime = time.time()
 
             # get dict of all pressed keys
             keys = pygame.key.get_pressed()
 
+            moveStartTime = time.time()
             # handle client movement
             movementArray = [keys[pygame.K_w], keys[pygame.K_s], keys[pygame.K_a], keys[pygame.K_d], keys[pygame.K_SPACE]]
             if True in movementArray:
                 self.Move(movementArray)
+            moveEndTime = time.time()
+
+            with open("timingLog2.txt", "a") as logs:
+                timingObj = {
+                    "updateGameState" : stateEndTime - stateStartTime,
+                    "renderPlayers" : playerEndTime - playerStartTime,
+                    "renderPowerUps" : powerUpEndTime - powerUpStartTime,
+                    "handleMovement" : moveEndTime - moveStartTime
+                }
+                logs.write(json.dumps(timingObj) + "\n")
 
             # flip() the display to put your work on screen
             pygame.display.flip()
 
-            # limits FPS to 60
-            # dt is delta time in seconds since last frame, used for framerate-
-            # independent physics.
-            # self.dt = clock.tick(60) / 1000
-
-        # pygame.quit()
-
 if __name__ == '__main__':
     try:
         serverAddress = sys.argv[1]
-        username = input("please enter a username: ")
+        username = input("Enter a username: ")
         client = GameClient(username)
         client.Connect(serverAddress)
         client.Run()

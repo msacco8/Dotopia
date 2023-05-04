@@ -103,7 +103,7 @@ class Server():
         weights = (0.2, 0.5, 0.3)
 
         while True:
-            time.sleep(5)
+            time.sleep(2)
             if len(self.powerUps) <= 30:
                 self.powerUps.append({
                     "type": random.choices(types, weights)[0],
@@ -123,7 +123,7 @@ class Server():
             # update score?
             self.accounts[user]["score"] += 10
         
-        elif type == "speed":
+        elif type == "speed" and self.accounts[user]["speed"] <= 17:
             self.accounts[user]["speed"] += 3
 
         elif type == "food":
