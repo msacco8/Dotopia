@@ -6,7 +6,7 @@ import struct
 import json
 
 
-# global variables
+# global constants
 MSG_SIZE = 1024
 PORT = 6000
 PREFIX_FORMAT = "!I"
@@ -22,11 +22,9 @@ class Server():
     '''
     Server side code for Dotopia
     '''
-
     def __init__(self):
-        # accounts[username][connection] = ip address
-        # accounts[username]["x" or "y"] = x or y coordinates
         # store mapping from username to game data
+        # stores each users x and y coordinates, score, and size
         self.accounts = {}
 
         # list of clients and respective sockets
