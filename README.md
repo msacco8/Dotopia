@@ -1,3 +1,7 @@
+# Dotopia
+
+![Alt text](/screencaps/gameplay.png?raw=true "Dotopia Gameplay")
+
 # Design Documentation and Engineering Notebook
 
 Project done by John Minicus and Michael Sacco
