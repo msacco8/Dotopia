@@ -215,7 +215,7 @@ class Server():
 
 
     def Listen(self):
-            # bind socket to host address and port
+        # bind socket to host address and port
         ADDR = socket.gethostbyname(socket.gethostname())
         self.sock.bind((ADDR, PORT))
 

@@ -93,7 +93,7 @@ class GameClient:
         opCode = "0"
         createUserPickle = (opCode + "|" + self.username).encode()
 
-        # send message request to server and get response
+        # send message request to server
         try:
             self.sock.send(createUserPickle)
         except:
@@ -247,5 +247,3 @@ if __name__ == '__main__':
         client.Run()
     except:
         print("Please try again and enter the server IP address as an argument.")
-
-
